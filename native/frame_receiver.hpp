@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace webcam {
-constexpr std::size_t max_frame_size = 1920 * 1080 * 2;
+constexpr std::size_t max_frame_size = 3840 * 2160 * 2;
 
 // One producer and a non-waiting UVC consumer. No unbounded frame queue.
 class FrameReceiver {

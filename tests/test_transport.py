@@ -116,7 +116,7 @@ class TransportTests(unittest.TestCase):
             def getType(self):
                 return "NV12"
 
-        with self.assertRaisesRegex(ValueError, "1920x1080 NV12"):
+        with self.assertRaisesRegex(ValueError, "3840x2160 NV12"):
             validate_frame(Frame(), "NV12")
 
 

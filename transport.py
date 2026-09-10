@@ -5,7 +5,7 @@ import socket
 import struct
 import threading
 
-MAX_FRAME_BYTES = 1920 * 1080 * 2
+MAX_FRAME_BYTES = 3840 * 2160 * 2
 LOG = logging.getLogger(__name__)
 
 

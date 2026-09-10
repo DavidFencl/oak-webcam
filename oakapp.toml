@@ -1,6 +1,9 @@
 identifier = "com.luxonis.community.oak4-webcam"
 app_version = "0.1.0"
 entrypoint = ["bash", "/app/scripts/entrypoint.sh"]
+assign_frontend_port = true
+# Allow the supervisor's bounded worker teardown and USB cleanup to complete.
+stop_grace_period = "45s"
 
 prepare_container = [
     { type = "COPY", source = "requirements.txt", target = "/app/requirements.txt" },

@@ -54,7 +54,11 @@ int main() {
     require(cache.refresh(receiver), "first JPEG makes cache ready");
     require(receiver.copy_latest(output, 2) == 0, "oversize never truncated");
     close(client);
-    eventually([&] { return receiver.copy_latest(output, sizeof(output)) == 0; });
+    // Disconnect midway through the next frame; it must not replace the prior JPEG.
+    client = connect_to(path);
+    require(send(client, &header, sizeof(header), MSG_NOSIGNAL) == sizeof(header), "partial reconnect header");
+    require(send(client, jpeg, 3, MSG_NOSIGNAL) == 3, "partial reconnect body");
+    close(client);
     require(cache.refresh(receiver), "cache remains ready after disconnect");
     require(cache.copy(output, sizeof(output)) == sizeof(jpeg), "disconnect repeats complete JPEG");
     require(std::memcmp(output, jpeg, sizeof(jpeg)) == 0, "cached JPEG preserved");
@@ -65,6 +69,12 @@ int main() {
     char byte;
     eventually([&] { return recv(client, &byte, 1, MSG_DONTWAIT) == 0; });
     close(client);
+    // Server rejection proves both previous EOFs have been processed. A newly
+    // opened consumer must still obtain the last complete image.
+    webcam::FrameCache late_consumer;
+    require(late_consumer.refresh(receiver), "late consumer receives JPEG after producer EOF");
+    require(late_consumer.copy(output, sizeof(output)) == sizeof(jpeg), "late consumer complete JPEG");
+    require(std::memcmp(output, jpeg, sizeof(jpeg)) == 0, "partial disconnect preserves complete image");
     client = connect_to(path);
     require(send(client, &header, sizeof(header), MSG_NOSIGNAL) == sizeof(header), "reconnect header");
     require(send(client, jpeg, sizeof(jpeg), MSG_NOSIGNAL) == sizeof(jpeg), "reconnect payload");
