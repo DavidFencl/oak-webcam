@@ -1,6 +1,6 @@
 # Prepared presets
 
-The registry is `presets/config.py`; `pipeline.py` imports its selected implementation. Set `OAK_WEBCAM_PRESET` through `oakctl app run --env`. The choice takes effect at startup and updates both USB descriptors and Python frame validation. Unknown names fail before changing USB state.
+The registry is `presets/config.py`; `pipeline.py` imports its selected implementation. Set the initial `OAK_WEBCAM_PRESET` through `oakctl app run --env`. That choice sets USB descriptors. Use the [browser console](control-panel.md) for later switches while preserving the session's USB format; outputs are resized to that format. Unknown initial names fail before changing USB state.
 
 ## Switch commands
 
@@ -49,7 +49,15 @@ Near surfaces have larger disparity and appear red; far surfaces appear blue. In
 
 ## Neural Assisted Stereo (NAS)
 
-`nas` combines neural depth, a virtual projection pattern and stereo matching using the DepthAI v3 [NeuralAssistedStereo node](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/neural_assisted_stereo.md). CAM_B/C request full-resolution images at 30 FPS. The disparity colormap uses the same scene-adaptive near-red/far-blue mapping as LENS XL, letterboxed into 4K video. Neither the visualization resolution nor the USB 30 FPS mode proves native 4K depth or 30 unique frames per second. Hardware validation is pending for this newly added preset.
+`nas` combines neural depth, a virtual projection pattern and stereo matching using the DepthAI v3 [NeuralAssistedStereo node](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/neural_assisted_stereo.md). CAM_B/C request full-resolution images at 30 FPS. The disparity colormap uses the same scene-adaptive near-red/far-blue mapping as LENS XL, letterboxed into 4K video. Neither the visualization resolution nor the USB 30 FPS mode proves native 4K depth or 30 unique frames per second. A live encoded 3840×2160 output frame was decoded and inspected on 2026-09-10 (`evidence/2026-09-10-nas/sample.jpg`); consumer throughput was not measured.
+
+## Point cloud
+
+`pointcloud` renders NAS metric XYZ points with synchronized RGB surface colors. `pointcloud-depth` renders the same kind of geometry using distance colors. Both default to a fixed physical-camera pose. See [point-cloud view settings](pointcloud.md). The source render is 1280×720, upscaled to 4K by default.
+
+## Custom Python file
+
+Select `custom` with a file path in the [console](control-panel.md), or start with `--env OAK_WEBCAM_PRESET=custom --env OAK_WEBCAM_CUSTOM_PIPELINE=/app/examples/custom_rgb.py`. The path refers to the OAK app filesystem. Files in the repository are copied into `/app` during deployment. The module must export `build_pipeline(pipeline)` and return one NV12 image output matching the session USB dimensions; custom code is responsible for that contract. The runtime owns pipeline start/stop and MJPEG encoding. Failed loading or startup reports an error and attempts to restore the previous running preset.
 
 ## Facial expression and head direction
 

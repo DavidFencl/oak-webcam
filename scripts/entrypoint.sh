@@ -5,10 +5,6 @@ cd /app
 usb_mode=$(python3.12 -m presets.config --usb)
 read -r OAK_WEBCAM_WIDTH OAK_WEBCAM_HEIGHT OAK_WEBCAM_FPS <<< "$usb_mode"
 export OAK_WEBCAM_WIDTH OAK_WEBCAM_HEIGHT OAK_WEBCAM_FPS
-if [[ "${OAK_WEBCAM_PRESET:-face-attention}" == face-attention ]]; then
-    # Model download/initialization must not consume the bridge's first-frame timeout.
-    python3.12 -m presets.models
-fi
 source /app/scripts/usb-gadget.sh
 declare -a child_pids=()
 runtime_dir=
@@ -18,7 +14,7 @@ cleanup() {
     trap - EXIT INT TERM
     set +e
     for pid in "${child_pids[@]}"; do kill -TERM "$pid" 2>/dev/null; done
-    for ((iteration=0; iteration<50; iteration++)); do
+    for ((iteration=0; iteration<350; iteration++)); do
         alive=0
         for pid in "${child_pids[@]}"; do
             kill -0 "$pid" 2>/dev/null && alive=1
@@ -50,7 +46,7 @@ fi
 gadget_setup
 /usr/local/bin/oak-webcam-bridge --socket "${OAK_WEBCAM_SOCKET:-/tmp/oak-webcam.sock}" --function "$FUNCTION" &
 child_pids+=("$!")
-python3.12 -u /app/main.py &
+python3.12 -u /app/control_panel.py &
 child_pids+=("$!")
 # Any child exit stops the other process and restores the USB gadget.
 status=0

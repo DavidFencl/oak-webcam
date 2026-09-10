@@ -85,8 +85,8 @@ void FrameReceiver::receive_loop() {
       latest_.swap(frame);
     }
     close(client);
-    std::lock_guard<std::mutex> lock(mutex_);
-    latest_.clear();
+    // Retain the last complete frame across producer handovers. A host may
+    // open UVC only after a transition producer has already disconnected.
   }
 }
 

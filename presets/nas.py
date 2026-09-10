@@ -7,9 +7,15 @@ from depthai_nodes.node import ApplyDepthColormap
 def build_depth(pipeline, fps=30):
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B, sensorFps=fps)
     right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C, sensorFps=fps)
-    return pipeline.create(dai.node.NeuralAssistedStereo).build(
+    depth = pipeline.create(dai.node.NeuralAssistedStereo).build(
         left.requestFullResolutionOutput(), right.requestFullResolutionOutput()
     )
+    # Extend the disparity search for close webcam subjects. RVC4 supports this
+    # mode; disable subpixel because the extended/subpixel combination is not
+    # universally supported across SDK/platform versions.
+    depth.stereoDepth.setSubpixel(False)
+    depth.stereoDepth.setExtendedDisparity(True)
+    return depth
 
 
 def build_pipeline(pipeline):

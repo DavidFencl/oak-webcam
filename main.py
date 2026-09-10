@@ -7,6 +7,8 @@ import threading
 
 from transport import FrameSender
 from presets.config import selected, selected_name
+from runtime_status import FrameStatus
+from dataclasses import replace
 
 LOG = logging.getLogger(__name__)
 
@@ -25,7 +27,12 @@ def main():
     from pipeline import build_pipeline
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    mode = selected()
+    source_mode = selected()
+    mode = replace(source_mode, **{key: int(os.environ.get("OAK_WEBCAM_" + key.upper(), getattr(source_mode, key)))
+                                   for key in ("width", "height", "fps")})
+    if (mode.width, mode.height, mode.fps) not in ((1920, 1080, 30), (3840, 2160, 30)):
+        raise ValueError("Unsupported USB output mode")
+    status = FrameStatus()
     remote = None
     if os.environ.get("OAK_WEBCAM_INSPECT") == "1":
         remote = dai.RemoteConnection(address="0.0.0.0", webSocketPort=8765, serveFrontend=False)
@@ -39,6 +46,15 @@ def main():
             output = build_pipeline(pipeline)
             if not isinstance(output, dai.Node.Output):
                 raise TypeError("build_pipeline(pipeline) must return one DepthAI Node.Output")
+            if selected_name() != "custom" and (source_mode.width, source_mode.height) != (mode.width, mode.height):
+                resize = pipeline.create(dai.node.ImageManip)
+                resize.initialConfig.setOutputSize(mode.width, mode.height, dai.ImageManipConfig.ResizeMode.LETTERBOX)
+                resize.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+                resize.setMaxOutputFrameSize(mode.width * mode.height * 2)
+                resize.inputImage.setBlocking(False)
+                resize.inputImage.setMaxSize(1)
+                output.link(resize.inputImage)
+                output = resize.out
             encoder = pipeline.create(dai.node.VideoEncoder)
             encoder.setDefaultProfilePreset(mode.fps, dai.VideoEncoderProperties.Profile.MJPEG)
             encoder.input.setBlocking(False)
@@ -62,7 +78,9 @@ def main():
                     validated = True
                 frame = encoded_queue.tryGet()
                 if frame is not None and validated:
-                    sender.submit(bytes(frame.getData()))
+                    jpeg = bytes(frame.getData())
+                    sender.submit(jpeg)
+                    status.update(jpeg)
                 stop.wait(0.002)
     finally:
         sender.close()

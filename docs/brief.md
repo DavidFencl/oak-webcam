@@ -25,7 +25,7 @@ The computer enumerates the camera and receives moving frames from the selected 
 DepthAI v3. Keep custom pipeline definition separate from webcam plumbing. Hardware and application compatibility require real-device validation.
 
 ## Now / later
-Prepared RGB 1080p, RGB 4K, LENS XL depth and face-expression/head-direction presets. Select by environment variable at startup. Mood and attention span are not measurable from these visible cues. Later: live switching, camera controls, audio, graphical editing and simultaneous consumers.
+Prepared RGB 1080p, RGB 4K, LENS XL, Neural Assisted Stereo and face-expression/head-direction presets. Add a fixed-view point-cloud visualization as ordinary webcam video and a browser console for changing pipelines while keeping the webcam connected. Mood and attention span are not measurable from visible cues. Later: audio, arbitrary graphical pipeline editing and simultaneous consumers.
 
 ## Assumptions and open questions
 User confirmed USB UVC and Python pipeline definition. Host OS, device availability and firmware compatibility are unverified.

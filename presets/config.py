@@ -19,7 +19,10 @@ PRESETS = {
     "rgb-4k": Preset("rgb", 3840, 2160, 30, "RGB 4K at 30 FPS requested"),
     "lens-xl": Preset("lens_xl", 3840, 2160, 30, "LENS XL depth, about 9 new frames/s, upscaled to 4K"),
     "nas": Preset("nas", 3840, 2160, 30, "Neural Assisted Stereo depth, 30 FPS requested, upscaled to 4K"),
+    "pointcloud": Preset("pointcloud", 3840, 2160, 30, "RGB-colored NAS point cloud, fixed view rendered at 720p and upscaled to 4K"),
+    "pointcloud-depth": Preset("pointcloud_depth", 3840, 2160, 30, "Depth-colored NAS point cloud, fixed view rendered at 720p and upscaled to 4K"),
     "face-attention": Preset("face_attention", 3840, 2160, 30, "Facial expression and head direction, 20 FPS input, upscaled to 4K"),
+    "custom": Preset("custom", 3840, 2160, 30, "User-provided Python pipeline file"),
 }
 DEFAULT_PRESET = "face-attention"
 
