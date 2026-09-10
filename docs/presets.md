@@ -53,7 +53,7 @@ Near surfaces have larger disparity and appear red; far surfaces appear blue. In
 
 ## Point cloud
 
-`pointcloud` renders NAS metric XYZ points with synchronized RGB surface colors. `pointcloud-depth` renders the same kind of geometry using distance colors. Both default to a fixed physical-camera pose. See [point-cloud view settings](pointcloud.md). The source render is 1280×720, upscaled to 4K by default.
+`pointcloud` renders NAS metric XYZ points with synchronized RGB surface colors. `pointcloud-depth` renders the same kind of geometry using distance colors. Both default to a fixed angled view aimed at nearby subjects; the console also offers a front view and editable camera settings. See [point-cloud view settings](pointcloud.md). The source render is 1280×720, upscaled to 4K by default.
 
 ## Custom Python file
 
