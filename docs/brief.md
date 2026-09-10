@@ -10,10 +10,10 @@ OAK4 D Pro.
 Processing runs on the OAK4 as a standalone OAK App. Consumer applications run on the user's computer.
 
 ## Scene
-User-selected camera scene; no recognition target specified.
+User-selected scene; optional single-person facial expression and head-direction visualization.
 
 ## Targets / events
-Continuous video, including custom pipeline processing.
+Continuous video, including custom pipeline processing and visible face cues.
 
 ## Outputs / actions
 One selectable webcam video source.
@@ -25,7 +25,7 @@ The computer enumerates the camera and receives moving frames from the selected 
 DepthAI v3. Keep custom pipeline definition separate from webcam plumbing. Hardware and application compatibility require real-device validation.
 
 ## Now / later
-First demo: one fixed video mode and a default RGB pipeline with an explicit customization point. Later: additional modes, camera controls, audio, graphical pipeline editing, simultaneous consumers.
+Prepared RGB 1080p, RGB 4K, LENS XL depth and face-expression/head-direction presets. Select by environment variable at startup. Mood and attention span are not measurable from these visible cues. Later: live switching, camera controls, audio, graphical editing and simultaneous consumers.
 
 ## Assumptions and open questions
 User confirmed USB UVC and Python pipeline definition. Host OS, device availability and firmware compatibility are unverified.

@@ -33,7 +33,7 @@ mkdir() {
             "$1/streaming/class/fs" "$1/streaming/class/hs" "$1/streaming/class/ss" \
             "$1/control/header" "$1/control/class/fs" "$1/control/class/ss"
         : > "$1/streaming_maxpacket"
-    elif [[ "$1" == "$FUNCTION_PATH/streaming/mjpeg/m/1080p" ]]; then
+    elif [[ "$1" == "$FUNCTION_PATH/streaming/mjpeg/m/frame" ]]; then
         local attribute
         for attribute in wWidth wHeight dwMaxVideoFrameBufferSize dwFrameInterval dwDefaultFrameInterval; do
             : > "$1/$attribute"
@@ -53,7 +53,7 @@ ln() {
 
 rmdir() {
     local path="${@: -1}" attribute
-    if [[ "$path" == "$FUNCTION_PATH/streaming/mjpeg/m/1080p" ]]; then
+    if [[ "$path" == "$FUNCTION_PATH/streaming/mjpeg/m/frame" ]]; then
         for attribute in wWidth wHeight dwMaxVideoFrameBufferSize dwFrameInterval dwDefaultFrameInterval; do
             command rm -- "$path/$attribute"
         done
@@ -81,10 +81,30 @@ gadget_setup
 [[ "$(<"$GADGET/UDC")" == factory-controller ]]
 [[ "$(readlink -f "$CONFIG_PATH/$FUNCTION")" == "$FUNCTION_PATH" ]]
 [[ "$(readlink -f "$FUNCTION_PATH/control/class/fs/h")" == "$FUNCTION_PATH/control/header/h" ]]
-[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/1080p/wWidth")" == 1920 ]]
+[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/frame/wWidth")" == 3840 ]]
 gadget_cleanup
 assert_restored
 echo 'PASS successful setup/cleanup preserves unused factory UVC and active NCM'
+
+prepare_case mode_1080p
+OAK_WEBCAM_WIDTH=1920 OAK_WEBCAM_HEIGHT=1080 OAK_WEBCAM_FPS=30
+gadget_setup
+[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/frame/wWidth")" == 1920 ]]
+[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/frame/wHeight")" == 1080 ]]
+[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/frame/dwMaxVideoFrameBufferSize")" == 4147200 ]]
+[[ "$(<"$FUNCTION_PATH/streaming/mjpeg/m/frame/dwFrameInterval")" == 333333 ]]
+gadget_cleanup
+assert_restored
+unset OAK_WEBCAM_WIDTH OAK_WEBCAM_HEIGHT OAK_WEBCAM_FPS
+echo 'PASS 1080p preset advertises matching dimensions, buffer and frame interval'
+
+prepare_case invalid_mode
+OAK_WEBCAM_WIDTH=123
+if gadget_setup; then exit 1; fi
+[[ "$gadget_changed" == 0 ]]
+assert_restored
+unset OAK_WEBCAM_WIDTH
+echo 'PASS invalid USB mode rejected before mutations'
 
 prepare_case conflict
 command ln -s ../../functions/uvc.0 "$CONFIG_PATH/factory-camera"

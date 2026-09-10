@@ -1,83 +1,81 @@
 # OAK4 Webcam
 
-Run a Python DepthAI pipeline on an OAK4 D Pro and send its selected video output to your computer as a native USB UVC webcam. The app advertises **OAK4 Webcam**, MJPEG, 1920 × 1080 at 30 FPS. There is no host virtual-camera driver or video relay service.
+Run a Python DepthAI pipeline on OAK4 D Pro and expose its output as **OAK4 Webcam**, a native MJPEG USB camera for Discord, Google Meet or OBS. Processing runs on the OAK; no host virtual-camera driver is needed.
 
-Verified on OAK4-D R7 / Luxonis OS 1.40.0 with Fedora: USB webcam enumeration and capture/decode of 60 frames at 1920 × 1080, approximately 30 FPS. Long-running use and Discord/Meet/OBS compatibility still require application-level validation.
+## Prepared presets
 
-The development app now builds and runs on the connected OAK4. A distributable `.oakapp` package has not been generated. Device internet and a correct clock are required when fetching build dependencies.
+| Preset | USB mode | Content |
+| --- | --- | --- |
+| `rgb-1080p` | 1920 × 1080, 30 FPS | Original RGB webcam |
+| `rgb-4k` | 3840 × 2160, 30 FPS | Native 4K RGB |
+| `lens-xl` | 3840 × 2160, 30 FPS | LENS XL 1248 × 780 depth visualization, about 9 new frames/s |
+| `nas` | 3840 × 2160, 30 FPS | Neural Assisted Stereo depth visualization, 30 FPS requested |
+| `face-attention` (default) | 3840 × 2160, 30 FPS | Facial-expression and head-direction overlay, 1280 × 720 input at 20 FPS |
 
-## Hardware and deployment
+USB FPS is the advertised mode. Depth/model computation and USB bandwidth determine fresh-frame delivery; an upscaled output adds no source detail. The bridge can repeat its latest complete frame.
 
-Use a USB data cable between the OAK4 and computer, and a power arrangement that meets the OAK4 D Pro requirements. A computer USB port alone may not provide sufficient power. Prefer Ethernet for device management: starting and stopping this app briefly disconnects the composite USB device while its webcam interface changes. Stop any other app using the cameras before starting this one.
+See [preset usage and interpretation](docs/presets.md) for commands, model details, expected performance, and customization.
 
-From this directory, with `oakctl` installed and the device reachable (replace `DEVICE_IP`):
+## Run or switch
+
+Connect USB data and adequate power. Prefer Ethernet for device management because switching briefly disconnects the composite USB device. Stop the current camera owner first; do not run multiple pipelines against one OAK.
 
 ```bash
 oakctl device list
-oakctl app run . -d DEVICE_IP
+oakctl app list -d DEVICE_IP
+# Stop this project's existing development app if it is running:
+oakctl app stop 00000000-0000-0000-0000-000000000000 -d DEVICE_IP
+# Choose any preset name from the table:
+oakctl app run . -d DEVICE_IP --detach --env OAK_WEBCAM_PRESET=face-attention
+oakctl app logs 00000000-0000-0000-0000-000000000000 -d DEVICE_IP --no-follow
 ```
 
-For a reusable package:
+Replace `DEVICE_IP` with the current address or serial shown by discovery. Source development runs use the all-zero app ID. If another app owns the camera, stop that app explicitly before running this one. `--detach` returns before startup finishes: check logs and the actual video output. Reopen the camera in the consumer after switching, especially when changing resolution.
+
+The face preset downloads three supported RVC4 Zoo models on first use, before binding USB. Device internet access is needed for uncached models and build dependencies. Other presets do not load those face models.
+
+## Consumer settings
+
+- Discord: User Settings → Voice & Video → Camera → OAK4 Webcam.
+- Google Meet: Settings → Video → Camera → OAK4 Webcam.
+- OBS: add a Video Capture Device, select OAK4 Webcam, then MJPEG and the preset's USB resolution at 30 FPS if manual selection is needed.
+
+A host may show a generic composite camera name. Use one consumer at a time.
+
+## Customize
+
+`pipeline.py` dispatches to the selected module in `presets/`. Each module implements `build_pipeline(pipeline)` and returns one NV12 image output matching the mode in `presets/config.py`. The runtime owns pipeline startup/shutdown and MJPEG encoding. Internal branches can do other processing. Re-run the app after editing.
+
+USB descriptors and runtime validation share the preset registry. The transport accepts at most 16,588,800 bytes per encoded frame, while the active USB buffer is `width × height × 2`. Oversized or malformed frames are never truncated.
+
+## Packaging
 
 ```bash
 oakctl app build . -d DEVICE_IP
 oakctl app install ./PACKAGE.oakapp -d DEVICE_IP --enable false
 ```
 
-Replace `PACKAGE.oakapp` with the actual generated filename. Installation starts the app and, by default, stops and disables other apps; the example disables automatic startup of this app for initial testing. Inspect and stop it with:
+Replace `PACKAGE.oakapp` with the generated filename. Installation starts the app and normally stops/disables other apps. The default preset is `face-attention`; change `DEFAULT_PRESET` in `presets/config.py` before packaging if a different default is desired. A distributable package has not yet been validated.
 
-```bash
-oakctl app list -d DEVICE_IP
-oakctl app logs APP_ID -d DEVICE_IP
-oakctl app stop APP_ID -d DEVICE_IP
-```
+## Lifecycle
 
-Use the ID returned by `app list`; a source development run uses `00000000-0000-0000-0000-000000000000`.
+The app adds its own `uvc.oakwebcam` function to existing `g1/configs/c.1`. It preserves unrelated functions and restores the original product string and controller binding on normal exit, startup failure and handled stop signals. It refuses to start if another UVC function is linked or its own function already exists. Bounded unbind retries handle transient OS rebinding; a different controller is never displaced.
 
-## Customize the pipeline
+Each normal run uses a fresh temporary socket directory, avoiding stale sockets after an abrupt exit. Either worker exiting stops the other. SIGKILL, power loss or abrupt container teardown cannot perform cleanup. If startup reports a leftover UVC function, inspect and stop its owning process; do not delete unrelated USB state.
 
-Edit `pipeline.py`, keeping this public function:
+## Validation
 
-```python
-def build_pipeline(pipeline):
-    # Create DepthAI v3 nodes, link them, and return one image output.
-    return selected_image_output
-```
-
-The runtime creates and starts the pipeline, consumes this one selected output and encodes it as MJPEG. Your function must return a DepthAI image output producing **1920 × 1080 NV12 frames at 30 FPS**. It must not start the pipeline or open another device. The default implementation selects RGB; its source is the working customization example. Internal branches may do other processing, but only the returned image output becomes webcam video. Render depth maps, annotations or detections into a compatible image before returning their output. Rebuild/re-run the app after editing Python.
-
-The first version has a fixed USB mode. Changing the image size or frame rate in Python alone does not change the USB descriptors. USB frames must fit the 4,147,200-byte maximum; oversized or malformed data must not be truncated. Audio, host camera controls and additional video modes are outside this version's contract.
-
-## Select the camera
-
-- Discord: User Settings → Voice & Video → Camera → OAK4 Webcam.
-- Google Meet: Settings → Video → Camera → OAK4 Webcam; allow browser camera access.
-- OBS: add a Video Capture Device source and select OAK4 Webcam. If manual settings are necessary, choose MJPEG, 1920 × 1080, 30 FPS.
-
-Names and menu wording can vary by host OS; a composite device may be shown under a generic USB camera name. Test each application separately and close other consumers before switching.
-
-## Lifecycle and recovery
-
-The app extends the existing `g1/configs/c.1` USB gadget with its own `uvc.oakwebcam` function. It preserves existing functions, including unused factory UVC functions, and restores the original product string and controller binding on normal exit, initialization failure and handled stop signals. It refuses to start when a UVC function is already linked into a USB configuration or its own function already exists. It allows up to ten unbind attempts with settling checks for transient RVC4 rebinding and refuses to displace a different controller.
-
-Stopping either the Python runtime or native bridge stops the other process. SIGKILL, power loss and container teardown without a graceful stop cannot run cleanup. If a later start reports a leftover UVC function, inspect the previous app's logs and stop its owning process; do not delete unrelated USB gadget state. A device reboot can restore the OS-managed USB setup after an unclean termination, but is an operator recovery action.
-
-## Validation still required
-
-On a real OAK4 and host, verify camera enumeration, decoded moving 1080p frames, a visible Python pipeline change, and live video in all three consumers. Open/close/reopen the camera and stop/restart the app; confirm existing USB management functions remain available after cleanup. Capture evidence under `evidence/`. A still preview or running process is insufficient to prove delivery.
-
-The implementation follows the Luxonis `oak-examples/cpp/uvc` gadget topology and pinned `uvc-gadget` dependency. Python defines the pipeline; the native bridge transports length-prefixed MJPEG over a local Unix socket and handles UVC/V4L2. No DepthAI C++ source build is required.
+RGB 1080p: 60 frames captured and decoded at approximately 30 FPS. RGB 4K: negotiated 30 FPS; one host capture delivered about 11 FPS, and the user confirmed it works. LENS XL: user confirmed the colorized view works. Face-attention: user screenshot confirms the overlay in Google Meet. These results do not guarantee throughput in every scene or consumer. See [USB validation](docs/validation-2026-09-10.md), [depth validation](docs/validation-2026-09-10-lens-xl.md), and [face/preset validation](docs/validation-2026-09-10-presets.md).
 
 ## Local checks
 
-From the project directory with Python and CMake available:
+Use an isolated Python environment with `requirements.txt` installed:
 
 ```bash
-python -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 bash tests/test-usb-gadget.sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 2
-ctest --test-dir build --output-on-failure
+.venv/bin/cmake --build build --parallel 2
+.venv/bin/ctest --test-dir build --output-on-failure
 ```
 
-Native and Python transport tests require local Unix socket access. The USB lifecycle tests emulate configfs and never modify device USB state. Local native compilation targets the host; oakctl builds the ARM64 app on the OAK4.
+If configuring a fresh native build, first run `.venv/bin/cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`. Native and Python transport tests require local Unix sockets; USB tests emulate configfs without touching hardware. No DepthAI source compilation is performed. [Third-party sources and model licenses](THIRD_PARTY.md).

@@ -47,6 +47,11 @@ gadget_link() {
 
 gadget_setup() {
     local existing target controller
+    local width=${OAK_WEBCAM_WIDTH:-3840} height=${OAK_WEBCAM_HEIGHT:-2160} fps=${OAK_WEBCAM_FPS:-30}
+    case "$width:$height:$fps" in
+        1920:1080:30|3840:2160:30) ;;
+        *) echo "Unsupported USB mode: $width x $height at $fps FPS" >&2; return 1 ;;
+    esac
     [[ -d "$CONFIG_PATH" && -r "$GADGET/UDC" && -r "$PRODUCT_PATH" ]] || {
         echo 'Expected existing OAK4 USB gadget g1/configs/c.1 and English product string.' >&2
         return 1
@@ -77,12 +82,12 @@ gadget_setup() {
     gadget_unbind || return 1
     gadget_mkdir "$FUNCTION_PATH"
     gadget_mkdir "$FUNCTION_PATH/streaming/mjpeg/m"
-    gadget_mkdir "$FUNCTION_PATH/streaming/mjpeg/m/1080p"
-    printf '1920\n' > "$FUNCTION_PATH/streaming/mjpeg/m/1080p/wWidth"
-    printf '1080\n' > "$FUNCTION_PATH/streaming/mjpeg/m/1080p/wHeight"
-    printf '4147200\n' > "$FUNCTION_PATH/streaming/mjpeg/m/1080p/dwMaxVideoFrameBufferSize"
-    printf '333333\n' > "$FUNCTION_PATH/streaming/mjpeg/m/1080p/dwFrameInterval"
-    printf '333333\n' > "$FUNCTION_PATH/streaming/mjpeg/m/1080p/dwDefaultFrameInterval"
+    gadget_mkdir "$FUNCTION_PATH/streaming/mjpeg/m/frame"
+    printf '%s\n' "$width" > "$FUNCTION_PATH/streaming/mjpeg/m/frame/wWidth"
+    printf '%s\n' "$height" > "$FUNCTION_PATH/streaming/mjpeg/m/frame/wHeight"
+    printf '%s\n' "$((width * height * 2))" > "$FUNCTION_PATH/streaming/mjpeg/m/frame/dwMaxVideoFrameBufferSize"
+    printf '%s\n' "$((10000000 / fps))" > "$FUNCTION_PATH/streaming/mjpeg/m/frame/dwFrameInterval"
+    printf '%s\n' "$((10000000 / fps))" > "$FUNCTION_PATH/streaming/mjpeg/m/frame/dwDefaultFrameInterval"
     gadget_mkdir "$FUNCTION_PATH/streaming/header/h"
     gadget_link ../../mjpeg/m "$FUNCTION_PATH/streaming/header/h/m"
     gadget_link ../../header/h "$FUNCTION_PATH/streaming/class/fs/h"
