@@ -36,7 +36,7 @@ oakctl app logs 00000000-0000-0000-0000-000000000000 -d DEVICE_IP --no-follow --
 ```
 
 1. Open the **frontend URL** shown by `oakctl app list`. Luxonis assigns its port; do not assume port 8080.
-2. In the logs, find `Webcam console: .../#token=...`. Copy the value after `#token=` into the console's **Console token** field and press **Connect**. Alternatively, append that fragment to the frontend URL before opening it. Treat the token as a password; a new app launch generates a new one by default.
+2. Open the complete `Webcam console: .../#token=...` login URL printed in the logs. If multiple network addresses appear, use the one reachable from your computer. Alternatively, copy the value after `#token=` into the console's **Console token** field and press **Connect**. Treat the token as a password; a new app launch generates a new one by default.
 3. Wait for **Running** and a moving preview with fresh frame counts. Select **OAK4 Webcam** in your video application's camera settings. Some hosts show a generic composite-camera name.
 
 The all-zero app ID above belongs to `oakctl app run` development sessions. Installed packages have their own IDs, shown by `oakctl app list`.

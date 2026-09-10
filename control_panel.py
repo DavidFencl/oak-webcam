@@ -15,7 +15,7 @@ import sys
 import tempfile
 import threading
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, quote
 
 from presets.config import PRESETS, selected_name
 from pipeline import validate_custom_path
@@ -352,6 +352,23 @@ def console_port():
     return port
 
 
+def console_urls(port, token):
+    """List concrete IPv4 interface URLs without requiring internet access."""
+    import fcntl
+    import struct
+    addresses = set()
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        for _, name in socket.if_nameindex():
+            try:
+                result = fcntl.ioctl(probe.fileno(), 0x8915, struct.pack("256s", name.encode()[:15]))
+                address = socket.inet_ntoa(result[20:24])
+                if not address.startswith("127.") and address != "0.0.0.0":
+                    addresses.add(address)
+            except OSError:
+                continue
+    return [f"http://{address}:{port}/#token={quote(token, safe='')}" for address in sorted(addresses)]
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
     token = os.environ.get("OAK_WEBCAM_CONTROL_TOKEN") or secrets.token_urlsafe(24)
@@ -362,7 +379,11 @@ def main():
     with tempfile.TemporaryDirectory(prefix="oak-console-") as directory:
         supervisor = Supervisor(directory)
         server = ControlServer((os.environ.get("OAK_WEBCAM_CONTROL_BIND", "0.0.0.0"), port), supervisor, token)
-        print(f"Webcam console: http://<device-ip>:{port}/#token={token}", flush=True)
+        urls = console_urls(port, token)
+        for url in urls:
+            print(f"Webcam console: {url}", flush=True)
+        if not urls:
+            print(f"Console address unavailable; use the frontend URL from oakctl app list. Console token: {token}", flush=True)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:

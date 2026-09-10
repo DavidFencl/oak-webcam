@@ -6,8 +6,9 @@ assume port 8080: the assigned port can change after an app restart.
 
 Read the app's startup logs for `Webcam console: .../#token=...`. Copy the value
 after `#token=` into the console's **Console token** field and press **Connect**,
-or append that fragment to the frontend URL. When using the log's URL directly,
-replace `<device-ip>` with the device address. The token is generated per app
+or open the complete login URL printed in the logs. The app prints its assigned
+IPv4 interface addresses; choose the address reachable from your computer.
+The token is generated per app
 launch unless configured. The browser removes the fragment from the address bar
 and retains it in memory only.
 

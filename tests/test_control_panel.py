@@ -9,10 +9,22 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from control_panel import ControlServer, Supervisor, validate_view, console_port
+from control_panel import ControlServer, Supervisor, validate_view, console_port, console_urls
 
 
 class ConsolePortTests(unittest.TestCase):
+    def test_concrete_urls_skip_loopback_and_unconfigured_interfaces(self):
+        import socket
+        def interface_address(fd, operation, name):
+            interface = name.split(b'\0')[0]
+            if interface == b'empty':
+                raise OSError('No address')
+            address = '127.0.0.1' if interface == b'lo' else '172.22.176.178'
+            return bytes(20) + socket.inet_aton(address) + bytes(8)
+        with patch('socket.if_nameindex', return_value=[(1, 'lo'), (2, 'eth0'), (3, 'empty')]), \
+             patch('fcntl.ioctl', side_effect=interface_address):
+            self.assertEqual(console_urls(9000, 'a/b'), ['http://172.22.176.178:9000/#token=a%2Fb'])
+
     def test_oak_assigned_port_matches_advertised_frontend(self):
         with patch.dict(os.environ, {'OAKAPP_STATIC_FRONTEND_PORT': '8123',
                                      'OAK_WEBCAM_CONTROL_PORT': '9000'}, clear=True):
