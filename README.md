@@ -2,9 +2,9 @@
 
 Run a Python DepthAI pipeline on an OAK4 D Pro and send its selected video output to your computer as a native USB UVC webcam. The app advertises **OAK4 Webcam**, MJPEG, 1920 × 1080 at 30 FPS. There is no host virtual-camera driver or video relay service.
 
-This is an initial implementation. USB enumeration, sustained video and Discord/Meet/OBS compatibility require validation on an OAK4 and your computer; successful local tests do not establish hardware compatibility.
+Verified on OAK4-D R7 / Luxonis OS 1.40.0 with Fedora: USB webcam enumeration and capture/decode of 60 frames at 1920 × 1080, approximately 30 FPS. Long-running use and Discord/Meet/OBS compatibility still require application-level validation.
 
-Current device build blocker: the connected OAK4 cannot resolve the container registry and reports a 1970 clock. USB internet sharing is disabled. Run `oakctl usbd enable` in an interactive host terminal (administrator password required), or supply an internet-connected Ethernet link, then confirm the device clock and retry the build. No installable `.oakapp` has been produced yet.
+The development app now builds and runs on the connected OAK4. A distributable `.oakapp` package has not been generated. Device internet and a correct clock are required when fetching build dependencies.
 
 ## Hardware and deployment
 
@@ -58,7 +58,7 @@ Names and menu wording can vary by host OS; a composite device may be shown unde
 
 ## Lifecycle and recovery
 
-The app extends the existing `g1/configs/c.1` USB gadget with its own `uvc.oakwebcam` function. It preserves existing functions, including unused factory UVC functions, and restores the original product string and controller binding on normal exit, initialization failure and handled stop signals. It refuses to start when a UVC function is already linked into a USB configuration or its own function already exists. It does not repeatedly fight another USB manager for the controller.
+The app extends the existing `g1/configs/c.1` USB gadget with its own `uvc.oakwebcam` function. It preserves existing functions, including unused factory UVC functions, and restores the original product string and controller binding on normal exit, initialization failure and handled stop signals. It refuses to start when a UVC function is already linked into a USB configuration or its own function already exists. It allows up to ten unbind attempts with settling checks for transient RVC4 rebinding and refuses to displace a different controller.
 
 Stopping either the Python runtime or native bridge stops the other process. SIGKILL, power loss and container teardown without a graceful stop cannot run cleanup. If a later start reports a leftover UVC function, inspect the previous app's logs and stop its owning process; do not delete unrelated USB gadget state. A device reboot can restore the OS-managed USB setup after an unclean termination, but is an operator recovery action.
 

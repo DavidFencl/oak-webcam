@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(oak_webcam LANGUAGES C CXX)
+include(GNUInstallDirs)
 
 find_package(Threads REQUIRED)
 add_library(frame_receiver native/frame_receiver.cpp)
@@ -28,6 +29,8 @@ if(BUILD_UVC_BRIDGE)
   target_sources(uvcgadget PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/uvc-stream-safe.c")
   add_executable(oak-webcam-bridge native/main.cpp)
   target_link_libraries(oak-webcam-bridge PRIVATE frame_receiver uvcgadget)
+  # OAK runtime images need not search /usr/local/lib in the loader cache.
+  set_target_properties(oak-webcam-bridge PROPERTIES INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
   install(TARGETS oak-webcam-bridge RUNTIME DESTINATION bin)
 endif()
 

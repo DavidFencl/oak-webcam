@@ -42,7 +42,9 @@ mkdir() {
 }
 
 ln() {
-    if (( fail_link )) && [[ "${@: -1}" == "$FUNCTION_PATH/streaming/class/hs/h" ]]; then
+    # configfs resolves the symlink target from the caller's cwd at creation.
+    [[ -e "$2" ]] || { echo 'configfs target does not resolve from cwd' >&2; return 2; }
+    if (( fail_link )) && [[ "$(pwd)/${@: -1}" == "$FUNCTION_PATH/streaming/class/hs/h" ]]; then
         echo 'Injected configfs link failure' >&2
         return 42
     fi
@@ -110,3 +112,32 @@ set -e
 [[ "$status" == 42 ]]
 assert_restored
 echo 'PASS partial setup failure removes only created paths and restores USB state'
+
+# Simulate the device rebinding during the settling window, without sleeping.
+sleep() {
+    ((settle_checks+=1))
+    if ((rebind_remaining > 0)); then
+        printf '%s\n' "$rebind_controller" > "$GADGET/UDC"
+        ((rebind_remaining-=1)) || true
+    fi
+}
+prepare_case transient_rebind
+original_udc=factory-controller
+settle_checks=0 rebind_remaining=3 rebind_controller=factory-controller
+gadget_unbind
+[[ -z "$(<"$GADGET/UDC")" && "$settle_checks" == 5 ]]
+echo 'PASS transient controller rebind settles within bounded retries'
+
+prepare_case permanent_rebind
+original_udc=factory-controller
+settle_checks=0 rebind_remaining=100 rebind_controller=factory-controller
+if gadget_unbind; then exit 1; fi
+[[ "$settle_checks" == 10 ]]
+echo 'PASS persistent rebinding stops after ten attempts'
+
+prepare_case changed_owner
+original_udc=factory-controller
+settle_checks=0 rebind_remaining=1 rebind_controller=other-controller
+if gadget_unbind; then exit 1; fi
+[[ "$(<"$GADGET/UDC")" == other-controller && "$settle_checks" == 1 ]]
+echo 'PASS another controller is never unbound'

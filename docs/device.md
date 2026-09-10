@@ -2,6 +2,10 @@
 
 Live observations on 2026-09-10; recheck before deployment.
 
+## Latest validation (supersedes initial blockers below)
+
+Development app now builds and runs on serial 1259426771. USB startup repairs and Fedora capture/decode of 60 MJPEG 1920x1080 frames at approximately 30 FPS are recorded in [validation-2026-09-10.md](validation-2026-09-10.md). Graceful stop removes the app UVC function and restores the original five USB links/controller. Earlier DNS/clock build failure is no longer blocking this development run. No firmware or persistent device setting was changed during this repair.
+
 ## Host
 
 - Fedora Linux x86_64, kernel 7.1.13-200.fc44.x86_64.

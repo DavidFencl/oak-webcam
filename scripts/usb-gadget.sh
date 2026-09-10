@@ -10,6 +10,27 @@ gadget_changed=0
 original_udc=
 original_product=
 
+# RVC4 USB management can rebind immediately after an unbind. Match the
+# reference's bounded settling window, but never displace another controller.
+gadget_unbind() {
+    local attempt current
+    for ((attempt=1; attempt<=10; attempt++)); do
+        current=$(<"$GADGET/UDC")
+        if [[ -n "$current" && "$current" != "$original_udc" ]]; then
+            echo "USB ownership changed to $current; refusing to unbind it." >&2
+            return 1
+        fi
+        printf '\n' > "$GADGET/UDC" || return 1
+        sleep 0.1
+        if [[ -z "$(<"$GADGET/UDC")" ]]; then
+            sleep 0.1
+            [[ -z "$(<"$GADGET/UDC")" ]] && return 0
+        fi
+    done
+    echo "USB controller did not remain unbound after 10 attempts (current: $(<"$GADGET/UDC"))." >&2
+    return 1
+}
+
 gadget_mkdir() {
     mkdir "$1"
     gadget_paths+=("$1")
@@ -17,7 +38,9 @@ gadget_mkdir() {
 }
 
 gadget_link() {
-    ln -s "$1" "$2"
+    # configfs resolves relative targets against the caller's working directory,
+    # unlike ordinary filesystem symlinks. Run in the link's parent directory.
+    (cd -- "$(dirname -- "$2")" && ln -s "$1" "$(basename -- "$2")")
     gadget_paths+=("$2")
     gadget_kinds+=(link)
 }
@@ -51,11 +74,7 @@ gadget_setup() {
     }
     controller="$original_udc"
     gadget_changed=1
-    printf '\n' > "$GADGET/UDC"
-    [[ -z "$(<"$GADGET/UDC")" ]] || {
-        echo 'USB controller remained bound; refusing competing rebind retries.' >&2
-        return 1
-    }
+    gadget_unbind || return 1
     gadget_mkdir "$FUNCTION_PATH"
     gadget_mkdir "$FUNCTION_PATH/streaming/mjpeg/m"
     gadget_mkdir "$FUNCTION_PATH/streaming/mjpeg/m/1080p"
@@ -92,8 +111,7 @@ gadget_cleanup() {
             echo 'USB ownership changed externally; manual cleanup of uvc.oakwebcam required.' >&2
             return 1
         fi
-        printf '\n' > "$GADGET/UDC" || return 1
-        [[ -z "$(<"$GADGET/UDC")" ]] || return 1
+        gadget_unbind || return 1
     fi
     for ((index=${#gadget_paths[@]}-1; index>=0; index--)); do
         if [[ "${gadget_kinds[index]}" == link ]]; then
