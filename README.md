@@ -49,6 +49,7 @@ Select a pipeline in the console and press **Switch pipeline**. For point clouds
 
 | Preset | What you see |
 | --- | --- |
+| Build finishes but `App output:` stays empty | In another terminal, run `oakctl app list -d DEVICE_IP`. If the app is `ready`, start the existing build with `oakctl app start APP_ID -d DEVICE_IP`, then inspect logs. A device reboot during development startup has produced this state; rebuilding is unnecessary. If already running, inspect logs instead of starting another camera process. |
 | `rgb-1080p` | RGB at 1920 × 1080, requesting 30 FPS |
 | `rgb-4k` | Native RGB at 3840 × 2160, requesting 30 FPS |
 | `lens-xl` | Highest visual-quality LENS XL depth option: 1248 × 780, about 9 new frames/s |
