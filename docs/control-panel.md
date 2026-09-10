@@ -1,13 +1,19 @@
 # Webcam control console
 
-The app now serves a browser console on port 8080. Read the startup log for
-`Webcam console: http://<device-ip>:8080/#token=...`, substitute the device's IP,
-and open that URL. The token is generated for each app launch unless configured.
-The browser removes the token from the address bar and keeps it in memory only.
-Alternatively open `http://<device-ip>:8080/` and paste the token into the form.
+The app serves a browser console on the frontend port assigned by Luxonis.
+Run `oakctl app list -d DEVICE_IP` and open the frontend URL it reports. Do not
+assume port 8080: the assigned port can change after an app restart.
+
+Read the app's startup logs for `Webcam console: .../#token=...`. Copy the value
+after `#token=` into the console's **Console token** field and press **Connect**,
+or append that fragment to the frontend URL. When using the log's URL directly,
+replace `<device-ip>` with the device address. The token is generated per app
+launch unless configured. The browser removes the fragment from the address bar
+and retains it in memory only.
 
 The console lists every registered preset, including NAS and pointcloud when
-present. Choose a pipeline and press **Switch pipeline**. It displays startup,
+present. Choose a pipeline and press **Switch pipeline**, or **Apply pipeline
+and fixed view** for point-cloud presets. It displays startup,
 switching, rollback, errors, an encoded-frame count, age of the latest frame,
 and a preview refreshed once per second. The preview is the outgoing image;
 Google Meet's mirrored self-view may differ. The face preset's mirror-text option
@@ -47,7 +53,8 @@ both startup and rollback fail; consult the console's error state.
 |---|---|---|
 | `OAK_WEBCAM_PRESET` | `face-attention` | Initial pipeline and session USB mode |
 | `OAK_WEBCAM_CONTROL_BIND` | `0.0.0.0` | Console listening interface |
-| `OAK_WEBCAM_CONTROL_PORT` | `8080` | Console HTTP port |
+| `OAKAPP_STATIC_FRONTEND_PORT` | Assigned by Luxonis | Registered frontend port; takes priority when present |
+| `OAK_WEBCAM_CONTROL_PORT` | `8080` fallback | Console port only when no Luxonis frontend port is assigned |
 | `OAK_WEBCAM_CONTROL_TOKEN` | Random per launch | Optional stable access token |
 
 Use a trusted local network: the console is plain HTTP. API calls require a

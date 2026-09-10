@@ -343,10 +343,19 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(202, {"accepted": True})
 
 
+def console_port():
+    # The OAK-assigned port must win so oakctl's advertised URL is accurate.
+    value = os.environ.get("OAKAPP_STATIC_FRONTEND_PORT") or os.environ.get("OAK_WEBCAM_CONTROL_PORT", "8080")
+    port = int(value)
+    if not 1 <= port <= 65535:
+        raise ValueError("Console port must be between 1 and 65535")
+    return port
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
     token = os.environ.get("OAK_WEBCAM_CONTROL_TOKEN") or secrets.token_urlsafe(24)
-    port = int(os.environ.get("OAK_WEBCAM_CONTROL_PORT", "8080"))
+    port = console_port()
     stopped = threading.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):
         signal.signal(signum, lambda *_: stopped.set())

@@ -9,7 +9,23 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from control_panel import ControlServer, Supervisor, validate_view
+from control_panel import ControlServer, Supervisor, validate_view, console_port
+
+
+class ConsolePortTests(unittest.TestCase):
+    def test_oak_assigned_port_matches_advertised_frontend(self):
+        with patch.dict(os.environ, {'OAKAPP_STATIC_FRONTEND_PORT': '8123',
+                                     'OAK_WEBCAM_CONTROL_PORT': '9000'}, clear=True):
+            self.assertEqual(console_port(), 8123)
+
+    def test_local_fallback_and_invalid_port(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(console_port(), 8080)
+            os.environ['OAK_WEBCAM_CONTROL_PORT'] = '9000'
+            self.assertEqual(console_port(), 9000)
+            os.environ['OAKAPP_STATIC_FRONTEND_PORT'] = '65536'
+            with self.assertRaises(ValueError):
+                console_port()
 from runtime_status import FrameStatus
 
 

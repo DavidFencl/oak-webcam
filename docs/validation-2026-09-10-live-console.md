@@ -21,3 +21,7 @@ All 38 Python tests passed, exercising preset contracts, custom file loading and
 Mock browser tests exercised preset switching, custom-path submission and view controls at desktop/mobile widths without JavaScript errors. A real browser session applied yaw 20° to the live RGB point cloud and then restored the default angled view; both changes completed with fresh encoded frames and no JavaScript errors. Token-free state and an inspected screenshot are saved under `evidence/live-console/view-controls.json` and `final-console.png`. No access token is included in shared documentation.
 
 Standalone holistic replay and packaged `.oakapp` installation remain pending. Console HTTP is intended for a trusted local network. Mirrored text is enabled for this user's Meet self-view; unmirrored consumers see reversed overlay/transition text with that option.
+
+## Frontend URL registration
+
+The manifest now requests an assigned frontend port, and the HTTP console prioritizes `OAKAPP_STATIC_FRONTEND_PORT` over its local fallback. A rebuilt live app appeared in `oakctl app list` with `http://172.22.176.178:9000`; authenticated status and a fresh JPEG were fetched successfully from that assigned port. All 40 Python tests passed, including assigned-port precedence and range checks. The manifest also gives bounded worker shutdown and USB cleanup a 45-second stop grace period.
