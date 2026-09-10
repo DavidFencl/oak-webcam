@@ -1,0 +1,33 @@
+identifier = "com.luxonis.community.oak4-webcam"
+app_version = "0.1.0"
+entrypoint = ["bash", "/app/scripts/entrypoint.sh"]
+
+prepare_container = [
+    { type = "COPY", source = "requirements.txt", target = "/app/requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages" },
+]
+prepare_build_container = [
+    { type = "RUN", command = "apt-get update && apt-get install -y --no-install-recommends build-essential cmake pkg-config" },
+]
+build_steps = [
+    "cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Release",
+    "cmake --build /app/build --parallel 2",
+    "cmake --install /app/build --prefix /usr/local",
+    "ldconfig",
+]
+
+# Matches the device access required by the Luxonis OAK4 UVC example.
+allowed_devices = [{ allow = true, access = "rwm" }]
+additional_mounts = [
+    { source = "/dev", target = "/dev", type = "devtmpfs", options = ["mode=777"] },
+    { source = "/sys/kernel/config", target = "/sys/kernel/config", type = "configfs", options = ["nosuid", "noexec", "nodev", "rw"] },
+]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.5"

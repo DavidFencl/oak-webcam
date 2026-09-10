@@ -1,0 +1,8 @@
+.git/
+.venv/
+build/
+evidence/
+__pycache__/
+**/__pycache__/
+*.oakapp
+vendor/uvc-gadget/.git/
